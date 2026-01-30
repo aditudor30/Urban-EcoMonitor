@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Urban EcoMonitor | Intelligent Dashboard</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        slate: {
+                            850: '#1e293b', 
+                            900: '#0f172a', 
+                            950: '#020617', 
+                        },
+                        emerald: {
+                            450: '#34d399',
+                            550: '#10b981',
+                        }
+                    },
+                    boxShadow: {
+                        'glass': '0 4px 30px rgba(0, 0, 0, 0.1)',
+                        'neon': '0 0 10px rgba(52, 211, 153, 0.5), 0 0 20px rgba(52, 211, 153, 0.3)',
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        
+        /* Glassmorphism Effect */
+        .glass {
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .glass-high-contrast {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155; 
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569; 
+        }
+
+        /* Fade In Animation */
+        .fade-in {
+            animation: fadeIn 0.6s ease-out forwards;
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+
+<body class="antialiased selection:bg-emerald-500 selection:text-white">
+    <div id="app" class="flex h-screen overflow-hidden bg-[url('https://grainy-gradients.vercel.app/noise.svg')]">
+        
+        <aside class="hidden md:flex w-72 flex-col m-4 rounded-3xl glass-high-contrast relative overflow-hidden transition-all hover:border-white/10">
+            <div class="p-8 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-white shadow-neon">
+                    <i class="ph-fill ph-plant text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-xl tracking-tight leading-none">EcoMonitor</h1>
+                    <p class="text-[10px] font-mono text-emerald-400 mt-1 uppercase tracking-wider">Startup Edition</p>
+                </div>
+            </div>
+
+            <nav class="flex-1 px-4 space-y-2">
+                <a href="#" class="flex items-center gap-3 px-4 py-3 bg-white/10 text-white rounded-xl border border-white/5 shadow-sm transition-all duration-200">
+                    <i class="ph-fill ph-squares-four text-lg text-emerald-400"></i>
+                    <span class="font-medium text-sm">Dashboard</span>
+                </a>
+                <a href="reports.html" class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 group">
+                    <i class="ph ph-chart-line-up text-lg group-hover:text-emerald-400 transition-colors"></i>
+                    <span class="font-medium text-sm">Analytics & Reports</span>
+                </a>
+                <a href="#" class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 group">
+                    <i class="ph ph-users text-lg group-hover:text-emerald-400 transition-colors"></i>
+                    <span class="font-medium text-sm">Occupants</span>
+                    <span class="ml-auto bg-slate-700/50 text-slate-300 text-[10px] px-2 py-0.5 rounded-full font-mono border border-white/5">{{ currentPeople }}</span>
+                </a>
+                <a href="#" class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 group">
+                    <i class="ph ph-sliders text-lg group-hover:text-emerald-400 transition-colors"></i>
+                    <span class="font-medium text-sm">HVAC Control</span>
+                </a>
+            </nav>
+
+            <div class="p-4 mt-auto">
+                <div class="p-4 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border border-white/5 relative overflow-hidden group cursor-default">
+                    <div class="relative z-10">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Connection</p>
+                        <div class="flex items-center gap-2">
+                            <span class="relative flex h-2 w-2">
+                              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                              <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                            </span>
+                            <span class="font-mono text-xs text-emerald-400">Live Stream Active</span>
+                        </div>
+                    </div>
+                    <i class="ph ph-wifi-high absolute -right-2 -bottom-2 text-6xl text-white/5 rotate-[-15deg] group-hover:text-white/10 transition-colors"></i>
+                </div>
+            </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col h-screen overflow-hidden relative">
+            
+            <header class="h-24 px-8 flex items-center justify-between shrink-0">
+                <div class="fade-in">
+                    <h2 class="text-2xl font-bold text-white tracking-tight">Control Panel</h2>
+                    <p class="text-sm text-slate-400 mt-1 flex items-center gap-2">
+                        <i class="ph ph-clock"></i>
+                        Last updated: <span class="font-mono text-emerald-400 bg-emerald-400/10 px-1.5 rounded">{{ currentTime }}</span>
+                    </p>
+                </div>
+
+                <div class="flex items-center gap-4 fade-in">
+                    <div :class="['px-4 py-2 rounded-full border backdrop-blur-md flex items-center gap-2 transition-all duration-500', 
+                        isEco 
+                       ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 shadow-neon' 
+                        : 'bg-amber-500/10 border-amber-500/20 text-amber-400 animate-pulse-slow']">
+                        <i :class="['ph-fill text-lg', isEco? 'ph-leaf' : 'ph-warning']"></i>
+                        <div>
+                            <span class="block text-xs font-bold uppercase tracking-wider">{{ isEco? 'ECO Mode' : 'High Usage' }}</span>
+                        </div>
+                    </div>
+
+                    <button class="w-10 h-10 rounded-full glass flex items-center justify-center text-slate-300 hover:text-white hover:bg-white/10 transition-all relative">
+                        <i class="ph ph-bell text-xl"></i>
+                        <span v-if="!isEco" class="absolute top-2 right-2 w-2 h-2 bg-amber-500 rounded-full border border-slate-800"></span>
+                    </button>
+                    
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 p-[2px] cursor-pointer hover:scale-105 transition-transform">
+                        <div class="w-full h-full rounded-full bg-slate-900 flex items-center justify-center overflow-hidden">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="Admin" class="w-full h-full object-cover">
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto p-8 pt-0 scroll-smooth">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pb-8">
+
+                    <div class="glass rounded-3xl p-8 col-span-1 lg:col-span-2 relative group overflow-hidden fade-in" style="animation-delay: 0.1s;">
+                        <div class="flex justify-between items-start relative z-10 h-full">
+                            <div class="flex flex-col h-full justify-between">
+                                <div>
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="p-2 rounded-lg bg-slate-700/50 text-emerald-400 border border-white/5">
+                                            <i class="ph ph-wind text-xl"></i>
+                                        </span>
+                                        <span class="text-slate-400 font-medium text-sm uppercase tracking-wide">Air Quality</span>
+                                    </div>
+                                    <h3 class="text-6xl font-bold text-white mt-4 font-mono tracking-tighter">
+                                        {{ Math.round(currentCO2) }}
+                                        <span class="text-lg text-slate-500 font-sans font-normal ml-1 align-top relative top-4">ppm</span>
+                                    </h3>
+                                    <p class="text-sm mt-4 font-medium px-3 py-1 rounded-md inline-block border border-white/5" 
+                                       :class="co2StatusBgClass">
+                                        {{ co2Message }}
+                                    </p>
+                                </div>
+                                
+                                <div class="text-xs text-slate-500 mt-6">
+                                    <p>Humidity: <span class="text-slate-300 font-mono">{{ currentHum }}%</span></p>
+                                    <p>Pressure: <span class="text-slate-300 font-mono">1013 hPa</span></p>
+                                </div>
+                            </div>
+                            
+                            <div class="relative w-40 h-40 flex items-center justify-center">
+                                <svg class="w-full h-full transform -rotate-90 drop-shadow-2xl">
+                                    <circle cx="80" cy="80" r="70" stroke="currentColor" stroke-width="12" fill="transparent" class="text-slate-800" />
+                                    <circle cx="80" cy="80" r="70" stroke="currentColor" stroke-width="12" fill="transparent" 
+                                        :class="co2StrokeClass"
+                                        stroke-dasharray="440" 
+                                        :stroke-dashoffset="co2DashOffset" 
+                                        stroke-linecap="round"
+                                        class="transition-all duration-1000 ease-out" />
+                                </svg>
+                                <div class="absolute text-center flex flex-col items-center">
+                                    <span class="text-3xl font-bold text-white">{{ airQualityScore }}</span>
+                                    <span class="text-[10px] text-slate-400 uppercase font-semibold">Eco Score</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="absolute -right-20 -bottom-20 w-80 h-80 bg-emerald-500/10 rounded-full blur-[100px] group-hover:bg-emerald-500/15 transition-all duration-700 pointer-events-none"></div>
+                    </div>
+
+                    <div class="glass rounded-3xl p-6 col-span-1 relative fade-in group" style="animation-delay: 0.2s;">
+                        <div class="flex justify-between items-center mb-6">
+                            <span class="text-slate-400 font-medium text-sm uppercase tracking-wide">Temperature</span>
+                            <i class="ph-fill ph-thermometer text-blue-400 text-xl"></i>
+                        </div>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-5xl font-bold text-white font-mono tracking-tighter">{{ currentTemp }}°</span>
+                        </div>
+                        
+                        <div class="mt-6 pt-4 border-t border-white/5">
+                            <div class="flex justify-between text-xs mb-2">
+                                <span class="text-slate-400">HVAC Target</span>
+                                <span class="text-emerald-400 font-mono">{{ targetTemp }}°C</span>
+                            </div>
+                            <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden relative">
+                                <div class="absolute top-0 bottom-0 w-1 bg-emerald-500 z-10" :style="{ left: Math.min((targetTemp / 40) * 100, 100) + '%' }"></div>
+                                <div class="h-full bg-gradient-to-r from-blue-600 to-blue-400 rounded-full transition-all duration-700" 
+                                     :style="{ width: Math.min((currentTemp / 40) * 100, 100) + '%' }"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass rounded-3xl p-6 col-span-1 relative fade-in group" style="animation-delay: 0.25s;">
+                        <div class="flex justify-between items-center mb-6">
+                            <span class="text-slate-400 font-medium text-sm uppercase tracking-wide">Smart Lighting</span>
+                            <i class="ph-fill ph-lightbulb text-yellow-400 text-xl"></i>
+                        </div>
+
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="flex items-center gap-2 text-slate-400 text-xs">
+                                <i class="ph-fill ph-sun text-orange-400"></i> Natural (Lux)
+                            </div>
+                            <span class="font-mono text-white">{{ Math.round(currentLux) }}</span>
+                        </div>
+
+                        <div class="bg-slate-800 rounded-xl p-4 border border-white/5 mt-2">
+                            <div class="flex justify-between items-end mb-2">
+                                <span class="text-xs text-slate-400 uppercase">Bulb Intensity</span>
+                                <span class="text-2xl font-mono font-bold text-yellow-400">{{ Math.round(currentDimmer) }}%</span>
+                            </div>
+                            <div class="w-full h-3 bg-slate-700 rounded-full overflow-hidden relative">
+                                <div class="h-full bg-yellow-400 transition-all duration-700 shadow-[0_0_10px_rgba(250,204,21,0.5)]" 
+                                     :style="{ width: currentDimmer + '%' }"></div>
+                            </div>
+                        </div>
+                        
+                        <p class="text-[10px] text-slate-500 mt-3 italic">
+                            *Daylight Harvesting active
+                        </p>
+                    </div>
+
+                    <div class="glass rounded-3xl p-6 col-span-1 relative fade-in group" style="animation-delay: 0.28s;">
+                        <div class="flex justify-between items-center mb-4">
+                            <span class="text-slate-400 font-medium text-sm uppercase tracking-wide">Active Ventilation</span>
+                            <i class="ph-fill ph-wind text-cyan-400 text-xl"></i>
+                        </div>
+                        
+                        <div class="flex items-center justify-between mt-4">
+                            <div>
+                                <h3 class="text-4xl font-bold text-white font-mono">{{ Math.round(currentFan) }}%</h3>
+                                <p class="text-xs text-slate-500 mt-1">Auto Control</p>
+                            </div>
+                            
+                            <div class="w-16 h-16 rounded-full bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
+                                <i class="ph-fill ph-fan text-4xl text-cyan-400 animate-spin" 
+                                   :style="{ animationDuration: fanDuration }"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 pt-4 border-t border-white/5">
+                            <p class="text-[10px] text-slate-400">Status: 
+                                <span v-if="currentFan > 70" class="text-cyan-400 font-bold">RAPID PURGE</span>
+                                <span v-else-if="currentFan > 30" class="text-emerald-400 font-bold">NORMAL</span>
+                                <span v-else class="text-slate-500 font-bold">STANDBY</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="glass rounded-3xl p-6 col-span-1 relative fade-in" style="animation-delay: 0.3s;">
+                        <div class="flex justify-between items-center mb-6">
+                            <span class="text-slate-400 font-medium text-sm uppercase tracking-wide">Daily Cost</span>
+                            <i class="ph-fill ph-currency-dollar text-amber-400 text-xl"></i>
+                        </div>
+                        <h3 class="text-5xl font-bold text-white font-mono tracking-tighter">${{ totalBill }}</h3>
+                        
+                        <div class="mt-6 flex items-center gap-3">
+                            <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-white/5 flex-1 text-center">
+                                <span class="block text-[10px] text-slate-500 uppercase">Usage</span>
+                                <span class="text-emerald-400 font-mono font-bold">{{ currentPower }} kW</span>
+                            </div>
+                            <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-white/5 flex-1 text-center">
+                                <span class="block text-[10px] text-slate-500 uppercase">Efficiency</span>
+                                <span :class="isEco? 'text-emerald-400' : 'text-amber-400'" class="font-mono font-bold">{{ isEco? '98%' : '65%' }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass rounded-3xl p-6 col-span-1 lg:col-span-2 h-[420px] fade-in relative" style="animation-delay: 0.4s;">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 class="font-semibold text-lg text-white">Trend Analysis</h3>
+                                <p class="text-xs text-slate-500">Environment vs Consumption (Last 5 hours)</p>
+                            </div>
+                            <div class="flex gap-4 text-xs font-mono">
+                                <div class="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/50 border border-white/5">
+                                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                    <span class="text-slate-300">CO2 (ppm)</span>
+                                </div>
+                                <div class="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/50 border border-white/5">
+                                    <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                                    <span class="text-slate-300">Temp (°C)</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="relative w-full h-[340px]">
+                            <canvas id="mainChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="glass rounded-3xl p-6 col-span-1 lg:col-span-1 flex flex-col fade-in" style="animation-delay: 0.5s;">
+                        <h3 class="font-semibold text-white mb-6 flex items-center gap-2">
+                            <i class="ph-fill ph-users-three text-slate-400"></i> Occupancy
+                        </h3>
+                        
+                        <div class="flex-1 flex flex-col justify-center items-center py-2 relative">
+                            <div class="relative">
+                                <div class="w-40 h-40 rounded-full border-4 border-slate-800 flex items-center justify-center relative bg-slate-900/50">
+                                    <div class="text-center z-10">
+                                        <span class="block text-5xl font-bold text-white font-mono">{{ currentPeople }}</span>
+                                        <span class="text-[10px] text-slate-500 uppercase tracking-widest">People</span>
+                                    </div>
+                                    <div class="absolute inset-0 rounded-full border-4 border-t-emerald-500 border-r-transparent border-b-transparent border-l-transparent animate-spin opacity-50" style="animation-duration: 3s;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-auto space-y-2">
+                            <div class="bg-white/5 rounded-xl p-3 border border-white/5 flex justify-between items-center">
+                                <div class="flex items-center gap-2">
+                                    <i class="ph ph-sign-in text-emerald-400"></i>
+                                    <span class="text-xs text-slate-400">Predicted Entry</span>
+                                </div>
+                                <span class="text-white font-mono text-sm">{{ predictedEntry }}</span>
+                            </div>
+                            <div class="bg-white/5 rounded-xl p-3 border border-white/5 flex justify-between items-center">
+                                <div class="flex items-center gap-2">
+                                    <i class="ph ph-sign-out text-amber-400"></i>
+                                    <span class="text-xs text-slate-400">Predicted Exit</span>
+                                </div>
+                                <span class="text-white font-mono text-sm">{{ predictedExit }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div> 
+                
+                <div class="text-center pb-4 text-slate-600 text-xs">
+                    <p>&copy; 2025 Urban EcoMonitor Systems. Powered by Vue 3 & Tailwind.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                // --- STATE ---
+                const currentTemp = ref(0);
+                const currentHum = ref(0);
+                const targetTemp = ref(22);
+                const currentCO2 = ref(400);
+                const currentPeople = ref(0);
+                const currentPower = ref(0);
+                const totalBill = ref(0.00);
+                const isEco = ref(true);
+                const currentTime = ref('--:--');
+                const predictedEntry = ref('--:--');
+                const predictedExit = ref('--:--');
+                
+                // Smart Lighting Variables
+                const currentLux = ref(0);
+                const currentDimmer = ref(0);
+                
+                // Fan Speed Variables
+                const currentFan = ref(0);
+                
+                let chartInstance = null;
+
+                // --- COMPUTED (Visual Logic) ---
+                
+                // Air Quality Score (100 = perfect, 0 = toxic)
+                const airQualityScore = computed(() => {
+                    const co2 = Math.min(Math.max(currentCO2.value, 400), 1400);
+                    // Map 400-1400 to 100-0
+                    return Math.round(100 - ((co2 - 400) / 1000) * 100);
+                });
+
+                // Progress Circle (SVG Dashoffset)
+                const co2DashOffset = computed(() => {
+                    const maxDash = 440; // 2 * pi * r (r=70)
+                    const score = airQualityScore.value;
+                    return maxDash - (maxDash * score) / 100;
+                });
+
+                // Fan Animation Speed (Inversely proportional)
+                const fanDuration = computed(() => {
+                    if (currentFan.value < 5) return '0s'; // Stopped
+                    // 100% -> 0.2s, 10% -> 3s
+                    const duration = 3 - (currentFan.value / 100) * 2.8;
+                    return duration + 's';
+                });
+
+                const co2Message = computed(() => {
+                    if (currentCO2.value < 800) return 'Optimal';
+                    if (currentCO2.value < 1000) return 'Average';
+                    return 'Ventilation Needed';
+                });
+
+                const co2StatusBgClass = computed(() => {
+                    if (currentCO2.value < 800) return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+                    if (currentCO2.value < 1000) return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
+                    return 'bg-red-500/20 text-red-400 border-red-500/30 animate-pulse';
+                });
+
+                const co2StrokeClass = computed(() => {
+                    if (currentCO2.value < 800) return 'text-emerald-500';
+                    if (currentCO2.value < 1000) return 'text-amber-500';
+                    return 'text-red-500';
+                });
+
+                // --- FETCH DATA ---
+
+                const fetchData = async () => {
+                    try {
+                        const response = await fetch('http://localhost:5000/api/status');
+                        const data = await response.json();
+                        
+                        if (!data.msg) {
+                            currentTemp.value = data.temperature? data.temperature.toFixed(1) : 0;
+                            currentHum.value = data.humidity? Math.round(data.humidity) : 0;
+                            targetTemp.value = data.hvac_target? data.hvac_target.toFixed(1) : 22;
+                            currentCO2.value = Math.round(data.co2);
+                            currentPeople.value = data.people;
+                            currentPower.value = data.power? data.power.toFixed(2) : 0;
+                            totalBill.value = data.total_bill? data.total_bill.toFixed(2) : 0;
+                            isEco.value = data.is_eco === 1;
+                            currentTime.value = data.timestamp;
+                            
+                            // Light Data
+                            currentLux.value = data.lux || 0;
+                            currentDimmer.value = data.dimmer || 0;
+                            
+                            // Fan Data
+                            currentFan.value = data.fan_speed || 0;
+                            
+                            // Prediction Data
+                            if (data.predicted_entry_time) predictedEntry.value = data.predicted_entry_time + ":00";
+                            else predictedEntry.value = "08:30"; 
+
+                            if (data.predicted_exit_time) predictedExit.value = data.predicted_exit_time + ":00";
+                            else predictedExit.value = "18:00";
+                        }
+                    } catch (e) {
+                        console.error("Fetch status error:", e);
+                    }
+                };
+
+                const fetchHistory = async () => {
+                    try {
+                        const response = await fetch('http://localhost:5000/api/history');
+                        const data = await response.json();
+                        updateChart(data);
+                    } catch (e) {
+                        console.error("Fetch history error:", e);
+                    }
+                };
+
+                // --- CHART.JS CONFIG ---
+
+                const initChart = () => {
+                    const ctx = document.getElementById('mainChart').getContext('2d');
+                    
+                    // Green Gradient for CO2
+                    const gradientCO2 = ctx.createLinearGradient(0, 0, 0, 300);
+                    gradientCO2.addColorStop(0, 'rgba(16, 185, 129, 0.4)'); 
+                    gradientCO2.addColorStop(1, 'rgba(16, 185, 129, 0)');
+
+                    // Blue Gradient for Temp
+                    const gradientTemp = ctx.createLinearGradient(0, 0, 0, 300);
+                    gradientTemp.addColorStop(0, 'rgba(59, 130, 246, 0.4)'); 
+                    gradientTemp.addColorStop(1, 'rgba(59, 130, 246, 0)');
+
+                    chartInstance = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: [],  // Populated from API
+                            datasets: [
+                                {
+                                    label: 'CO2 (ppm)',
+                                    data: [],
+                                    borderColor: '#10b981', // Emerald 500
+                                    backgroundColor: gradientCO2,
+                                    borderWidth: 2,
+                                    fill: true,
+                                    tension: 0.4,
+                                    pointRadius: 0, 
+                                    pointHoverRadius: 6,
+                                    yAxisID: 'y'
+                                },
+                                {
+                                    label: 'Temp (°C)',
+                                    data: [],
+                                    borderColor: '#3b82f6', // Blue 500
+                                    backgroundColor: gradientTemp,
+                                    borderWidth: 2,
+                                    fill: true,
+                                    tension: 0.4,
+                                    pointRadius: 0,
+                                    pointHoverRadius: 6,
+                                    yAxisID: 'y1'
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: {
+                                mode: 'index',
+                                intersect: false,
+                            },
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    backgroundColor: 'rgba(15, 23, 42, 0.9)', // Slate 900
+                                    titleColor: '#f8fafc',
+                                    bodyColor: '#cbd5e1',
+                                    borderColor: 'rgba(255,255,255,0.1)',
+                                    borderWidth: 1,
+                                    padding: 12,
+                                    displayColors: true,
+                                    cornerRadius: 12,
+                                    titleFont: { family: 'Inter', size: 13 },
+                                    bodyFont: { family: 'JetBrains Mono', size: 12 }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    grid: { display: false },
+                                    ticks: { color: '#64748b', font: { family: 'Inter', size: 10 } }
+                                },
+                                y: {
+                                    type: 'linear',
+                                    display: true,
+                                    position: 'left',
+                                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                                    ticks: { color: '#64748b', font: { family: 'JetBrains Mono' } },
+                                    suggestedMin: 300,
+                                    suggestedMax: 1000
+                                },
+                                y1: {
+                                    type: 'linear',
+                                    display: true,
+                                    position: 'right',
+                                    grid: { drawOnChartArea: false },
+                                    ticks: { color: '#64748b', font: { family: 'JetBrains Mono' } },
+                                    suggestedMin: 15,
+                                    suggestedMax: 30
+                                }
+                            }
+                        }
+                    });
+                };
+
+                const updateChart = (data) => {
+                    if (!chartInstance) return;
+                    
+                    if (data && data.labels && data.co2 && data.temp) {
+                        chartInstance.data.labels = data.labels;
+                        chartInstance.data.datasets[0].data = data.co2;
+                        chartInstance.data.datasets[1].data = data.temp;
+                        chartInstance.update('none');
+                    }
+                };
+
+                // --- LIFECYCLE ---
+                onMounted(() => {
+                    fetchData();
+                    initChart();
+                    fetchHistory();
+                    
+                    setInterval(fetchData, 2000);
+                    setInterval(fetchHistory, 10000);
+                });
+
+                return {
+                    currentTemp, currentHum, targetTemp, currentCO2, currentPeople,
+                    currentPower, totalBill, isEco, currentTime,
+                    predictedEntry, predictedExit,
+                    currentLux, currentDimmer,
+                    currentFan, fanDuration,
+                    airQualityScore, co2DashOffset, co2Message, 
+                    co2StatusBgClass, co2StrokeClass
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

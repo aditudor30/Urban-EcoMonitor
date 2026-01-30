@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Urban EcoMonitor | Analytics</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        slate: {
+                            850: '#1e293b', 
+                            900: '#0f172a', 
+                            950: '#020617', 
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        
+        .glass {
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .glass-high-contrast {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155; 
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569; 
+        }
+
+        .fade-in {
+            animation: fadeIn 0.6s ease-out forwards;
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+
+<body class="antialiased selection:bg-emerald-500 selection:text-white">
+    <div id="app" class="flex h-screen overflow-hidden bg-[url('https://grainy-gradients.vercel.app/noise.svg')]">
+        
+        <aside class="hidden md:flex w-72 flex-col m-4 rounded-3xl glass-high-contrast relative overflow-hidden">
+            <div class="p-8 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white shadow-lg">
+                    <i class="ph-fill ph-chart-pie-slice text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-xl tracking-tight">EcoMonitor</h1>
+                    <p class="text-[10px] font-mono text-purple-400 mt-1 uppercase">Analytics Module</p>
+                </div>
+            </div>
+
+            <nav class="flex-1 px-4 space-y-2">
+                <a href="index.html" class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-all">
+                    <i class="ph ph-squares-four text-lg"></i>
+                    <span class="font-medium text-sm">Dashboard</span>
+                </a>
+                <a href="#" class="flex items-center gap-3 px-4 py-3 bg-white/10 text-white rounded-xl border border-white/5 shadow-sm">
+                    <i class="ph-fill ph-chart-line-up text-lg text-purple-400"></i>
+                    <span class="font-medium text-sm">Analytics & Reports</span>
+                </a>
+            </nav>
+        </aside>
+
+        <main class="flex-1 flex flex-col h-screen overflow-hidden relative">
+            <header class="h-24 px-8 flex items-center justify-between shrink-0">
+                <div class="fade-in">
+                    <h2 class="text-2xl font-bold text-white">Detailed Reports</h2>
+                    <p class="text-sm text-slate-400 mt-1">Long-term performance analysis</p>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto p-8 pt-0 scroll-smooth">
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 fade-in">
+                    <div class="glass p-6 rounded-2xl border-l-4 border-l-blue-500">
+                        <p class="text-xs text-slate-400 uppercase tracking-wider">Avg. Temp</p>
+                        <p class="text-3xl font-mono font-bold text-white mt-1">{{ stats.avg_temp }}°C</p>
+                        <p class="text-xs text-slate-500 mt-2">Historical building average</p>
+                    </div>
+                    <div class="glass p-6 rounded-2xl border-l-4 border-l-purple-500">
+                        <p class="text-xs text-slate-400 uppercase tracking-wider">Peak Occupancy</p>
+                        <p class="text-3xl font-mono font-bold text-white mt-1">{{ stats.max_people }} <span class="text-sm">Pers</span></p>
+                        <p class="text-xs text-slate-500 mt-2">Maximum capacity reached</p>
+                    </div>
+                    <div class="glass p-6 rounded-2xl border-l-4 border-l-amber-500">
+                        <p class="text-xs text-slate-400 uppercase tracking-wider">Total Simulated Cost</p>
+                        <p class="text-3xl font-mono font-bold text-white mt-1">${{ stats.total_cost }}</p>
+                        <p class="text-xs text-slate-500 mt-2">Since monitoring started</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in" style="animation-delay: 0.1s;">
+                    
+                    <div class="glass p-6 rounded-3xl lg:col-span-2 min-h-[400px]">
+                        <h3 class="font-semibold text-white mb-6">Hourly Energy Profile (Avg)</h3>
+                        <div class="relative h-[300px] w-full">
+                            <canvas id="barChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="glass p-6 rounded-3xl min-h-[400px] flex flex-col items-center">
+                        <h3 class="font-semibold text-white mb-4 w-full text-left">Operational Efficiency</h3>
+                        <div class="relative h-[250px] w-full flex justify-center">
+                            <canvas id="pieChart"></canvas>
+                        </div>
+                        
+                        <div class="mt-8 w-full space-y-3">
+                            <div class="flex justify-between items-center text-sm p-3 bg-white/5 rounded-xl">
+                                <span class="flex items-center gap-2 text-slate-300">
+                                    <span class="w-3 h-3 rounded-full bg-emerald-500"></span> Eco Mode
+                                </span>
+                                <span class="font-mono text-emerald-400 font-bold">{{ ecoPercentage }}%</span>
+                            </div>
+                            <div class="flex justify-between items-center text-sm p-3 bg-white/5 rounded-xl">
+                                <span class="flex items-center gap-2 text-slate-300">
+                                    <span class="w-3 h-3 rounded-full bg-red-500"></span> High Waste
+                                </span>
+                                <span class="font-mono text-red-400 font-bold">{{ 100 - ecoPercentage }}%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted, computed } = Vue;
+
+        createApp({
+            setup() {
+                const stats = ref({ avg_temp: 0, max_people: 0, total_cost: 0 });
+                const ecoCount = ref(0);
+                const wasteCount = ref(0);
+                
+                // Calculate Eco Percentage
+                const ecoPercentage = computed(() => {
+                    const total = ecoCount.value + wasteCount.value;
+                    return total > 0 ? Math.round((ecoCount.value / total) * 100) : 0;
+                });
+
+                // Load Data Function
+                const loadAnalytics = async () => {
+                    try {
+                        const res = await fetch('http://localhost:5000/api/analytics');
+                        const data = await res.json();
+                        
+                        // Update KPI
+                        stats.value.avg_temp = data.avg_temp;
+                        stats.value.max_people = data.max_people;
+                        stats.value.total_cost = data.total_cost_all_time;
+                        
+                        // Update Pie Data Vars
+                        ecoCount.value = data.pie_data[0] || 0; // Eco is index 0
+                        wasteCount.value = data.pie_data[1] || 0;
+
+                        // Render Charts
+                        renderBarChart(data.bar_labels, data.bar_data);
+                        renderPieChart(data.pie_data);
+
+                    } catch (e) { console.error(e); }
+                };
+
+                const renderBarChart = (labels, values) => {
+                    new Chart(document.getElementById('barChart'), {
+                        type: 'bar',
+                        data: {
+                            labels: labels.map(h => `${h}:00`),
+                            datasets: [{
+                                label: 'Avg Consumption (W)',
+                                data: values,
+                                backgroundColor: 'rgba(99, 102, 241, 0.5)', // Indigo
+                                borderColor: '#6366f1',
+                                borderWidth: 1,
+                                borderRadius: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                                x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                            }
+                        }
+                    });
+                };
+
+                const renderPieChart = (data) => {
+                    new Chart(document.getElementById('pieChart'), {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Eco', 'Waste'],
+                            datasets: [{
+                                data: data, // [EcoCount, WasteCount]
+                                backgroundColor: ['#10b981', '#ef4444'], // Emerald, Red
+                                borderWidth: 0,
+                                hoverOffset: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            cutout: '70%',
+                            plugins: { legend: { display: false } }
+                        }
+                    });
+                };
+
+                onMounted(() => {
+                    loadAnalytics();
+                });
+
+                return { stats, ecoPercentage };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
